@@ -5,13 +5,13 @@
 aws s3 cp openapi.yaml s3://calgaryhacks2021/swagger-template/openapi.yaml --profile personal
 ```
 
-The above OpenAPI template is referenced inside the sam template, `sam_template_swagger.yaml`.
+The above OpenAPI template is referenced inside the sam template, `sam_template.yaml`.
 ```
 DefinitionBody:
           'Fn::Transform':
             Name: 'AWS::Include'
             Parameters:
-              Location: s3://cause-recommendations/swagger-template/api-gw-oa-v2.yaml
+              Location: s3://calgaryhacks2021/swagger-template/openapi.yaml
 ```
 
 Update accordingly.
