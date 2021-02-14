@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS SAM template with API defined in an external Swagger file along with Lambda integrations and CORS configurations
+Parameters:
+  #https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-domainname.html
+  # API Versioning implemented according to this
+  # https://stackoverflow.com/questions/42095592/uri-based-versioning-for-aws-api-gateway
+  basePathParameter:
+    Type: String
+    Default: 'v1'
+    # Allow only upto v4
+    AllowedValues:
+      - 'v1'
+      - 'v2'
+      - 'v3'
+      - 'v4'
+    Description: Enter the version of the API required
+Resources:
+  CalgaryHacksAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Join ["-", ["CalgaryHacksAPI" , !Ref basePathParameter]]
+      StageName: dev
+      # https://github.com/awslabs/serverless-application-model/blob/master/examples/2016-10-31/api_swagger_cors/template.yaml
+      # DefinitionUri: 'cr-openapi.yaml'
+      DefinitionBody:
+          'Fn::Transform':
+            Name: 'AWS::Include'
+            Parameters:
+              Location: s3://calgaryhacks2021/swagger-template/openapi.yaml
+  CalgaryHacksFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Join ["-", ["CalgaryHacksFunction" , !Ref basePathParameter]]
+      Handler: genericlambdaapi.lambda_handler
+      Runtime: python3.8
+      CodeUri: .
+      Description: Generic Lambda function for get and post
+      MemorySize: 1024
+      Timeout: 30
+      Role: !GetAtt LambdaRole.Arn
+      # Layers:
+      #   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:pandas:1'
+      #   - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:s3fs:1'
+      Environment:
+        Variables:
+          VERSION_NUM: !Ref basePathParameter
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            #AWS SAM currently supports Lambda proxy integration only.
+            #https://github.com/awslabs/aws-sam-cli/issues/1003
+            #Create API Gateway using Cloudformation instead of SAM
+            Path: /recommendations/{userid}
+            Method: get
+            RestApiId:
+              Ref: CalgaryHacksAPI
+  LambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+Outputs:
+  RecommendationAPIURL:
+    Description: "API Dev stage endpoint"
+    Value: !Sub "https://${CalgaryHacksAPI}.execute-api.${AWS::Region}.amazonaws.com/dev/recommendations"

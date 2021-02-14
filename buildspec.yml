@@ -1,0 +1,15 @@
+version: 0.2
+phases:
+  build:
+    commands:
+      - echo Build started on `date`
+      #Lambda deploy reference
+      #https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-deploying.html
+      #Build spec reference
+      #https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+      # Upload the openapi template
+      - aws s3 cp openapi.yaml s3://calgaryhacks2021/swagger-template/openapi.yaml
+      # Package SAM template
+      - sam package --template-file sam_template.yml --s3-bucket calgaryhacks2021 --s3-prefix build-artifacts --output-template-file packaged.yaml
+      # Deploy packaged SAM template
+      - sam deploy --template-file packaged.yaml --stack-name calgaryhacks2021-api-codebuild --capabilities CAPABILITY_NAMED_IAM --region us-east-1
