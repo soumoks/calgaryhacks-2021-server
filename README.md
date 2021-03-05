@@ -1,3 +1,4 @@
+![Screen Shot 2021-02-14 at 10 10 07 AM](https://user-images.githubusercontent.com/10564697/110074277-2c52cb80-7d3e-11eb-91ef-4cf3215cb227.png)
 ### Steps to deploy and update the application using AWS SAM.
 
 * Upload the Open API template to s3
